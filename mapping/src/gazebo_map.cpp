@@ -7,7 +7,7 @@
 #include <fstream>
 #include <ios>
 
-/** @brief : Gets the map produced bu the gazebo_ros_2Dmap plugin and converts it to a txt file 
+/** @brief : Gets the map produced by the gazebo_ros_2Dmap plugin and converts it to a txt file 
  * callMap() calls the service that produces the map
  * The most recent map is received using getMap() and stored as a class attribute.
  * Then, the function OccGridToTxt() converts it to txt and saves it at required path. 
@@ -72,7 +72,7 @@ int main(int argc, char *argv[])
 {
     ros::init(argc, argv, "MapCreator");
     Map mapObject;
-    ros::spin();
+    ros::spinOnce();
 
     return 0;
 }

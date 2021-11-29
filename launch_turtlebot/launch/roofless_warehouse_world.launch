@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <launch>
   <include file="$(find gazebo_ros)/launch/empty_world.launch">
-    <arg name="world_name" value="worlds/no_roof_small_warehouse.world"/> 
+    <arg name="world_name" value="$(find launch_turtlebot)/worlds/no_roof_small_warehouse.world"/> 
     <arg name="paused" value="false"/>
     <arg name="use_sim_time" value="true"/>
     <arg name="gui" value="true"/>
@@ -10,8 +10,8 @@
   </include>
 
   <!-- Convert an xacro and put on parameter server -->
-    <param name="robot_description" command="$(find xacro)/xacro $(find turtlebot3_description)/urdf/turtlebot3_burger_for_autorace_2020.urdf.xacro" />
+    <!-- <param name="robot_description" command="$(find xacro)/xacro $(find turtlebot3_description)/urdf/turtlebot3_burger_for_autorace_2020.urdf.xacro" /> -->
 
 <!-- Spawn a robot into Gazebo -->
-    <node name="spawn_urdf" pkg="gazebo_ros" type="spawn_model" args="-param robot_description -urdf -model turtlebot3_burger_for_autorace_2020" />
+    <!-- <node name="spawn_urdf" pkg="gazebo_ros" type="spawn_model" args="-param robot_description -urdf -model turtlebot3_burger_for_autorace_2020" /> -->
 </launch>
