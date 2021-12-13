@@ -208,13 +208,13 @@ class VFH:
                 # Is more important at closer layers
                 for sector_index in range(int(math.floor((cell_angle - layer_angle_interval / 2) / ph.sector_angle)),
                                            int(math.ceil((cell_angle + layer_angle_interval / 2) / ph.sector_angle))):
-
-                    #print "   sector:", sector_index * ph.sector_angle
-                    if layer == 1 and hg.out_of_bounds(x, y):
-                        # MAX_CERTAINTY for edge of histogramgrid
-                        ph.polar_histogram[sector_index] += HistogramGrid.MAX_CERTAINTY
-                    else:
-                        ph.polar_histogram[sector_index] += cell_magnitude
+                    if sector_index < len(ph.polar_histogram):
+                        #print "   sector:", sector_index * ph.sector_angle
+                        if layer == 1 and hg.out_of_bounds(x, y):
+                            # MAX_CERTAINTY for edge of histogramgrid
+                            ph.polar_histogram[sector_index] += HistogramGrid.MAX_CERTAINTY
+                        else:
+                            ph.polar_histogram[sector_index] += cell_magnitude
 
                 # Deprecated
                 # sector_index = int(math.floor(cell_angle/ph.sector_angle) if cell_angle >= 0 else math.ceil(cell_angle/ph.sector_angle) - 1)
@@ -228,7 +228,7 @@ class VFH:
         return ph
 
     @classmethod
-    def get_best_direction(cls, ph, target_direction, current_direction, previous_direction, t=15, smax=5, a=5, b=1, c=1):
+    def get_best_direction(cls, ph, target_direction, current_direction, previous_direction, t=10, smax=5, a=5, b=1, c=1):
         """ Function get_best_direction uses PolarHistogram to determine the best direction
             IMPORTANT! Angle orientation/notation shown below
                 N
@@ -269,10 +269,10 @@ class VFH:
                     print ("Only one valley")
                     free_valleys.append(
                         [start_angle, (free_sectors[i][0] + 1) * sector_angle])
-                elif free_sectors[i][0] * sector_angle == 360 - sector_angle and free_valleys[0][0] == 0:
+                #elif free_sectors[i][0] * sector_angle == 360 - sector_angle and free_valleys[0][0] == 0:
                     # If the first valley begins <360 and ends >0 e.g. 320 -> 20
-                    print ("Wrapping first valley")
-                    free_valleys[0] = (start_angle, free_valleys[0][1] + 360)
+                    #print ("Wrapping first valley")
+                    #free_valleys[0] = (start_angle, free_valleys[0][1] + 360)
                 else:
                     print ("Putting in last valley")
                     free_valleys.append(

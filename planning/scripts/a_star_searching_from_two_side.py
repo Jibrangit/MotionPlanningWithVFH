@@ -260,7 +260,7 @@ def draw_control(org_closed, goal_closed, flag, start, end, bound, obstacle):
     goal_closed_ls = node_to_coordinate(goal_closed)
     goal_array = np.array(goal_closed_ls)
     path = None
-    if show_animation:  # draw the searching process
+    if False:  # draw the searching process
         draw(org_array, goal_array, start, end, bound)
     if flag == 0:
         node_intersect = check_node_coincide(org_closed, goal_closed)

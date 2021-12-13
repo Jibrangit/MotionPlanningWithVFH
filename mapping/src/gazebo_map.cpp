@@ -16,7 +16,6 @@
 class Map {
 public:
     Map() {
-        callMap();                                                      // Called service to get map
         getGrid_ = nh_.subscribe("/map2d", 10, &Map::getMap, this);     // Subscriber, will be sent to callback which sends it to the function for processing it to .txt
     }
     void OccGridToTxt();
@@ -48,6 +47,8 @@ void Map::getMap(const nav_msgs::OccupancyGrid& gridMap)
     gazeboMap_ = gridMap;
     if(!gazeboMap_.data.empty())                          // Checks to see if the map is empty
         OccGridToTxt();
+        ROS_INFO_STREAM("Map of size " << gazeboMap_.data.size() << " copied into a text file" );
+
 }
 
 void Map::OccGridToTxt()
@@ -65,14 +66,16 @@ void Map::OccGridToTxt()
         else
             myfile << 0 << " ";                         // 0 is 0
     }
-    ROS_INFO_STREAM("Map of size " << gazeboMap_.data.size() << " copied into a text file" );
+   
 }
 
 int main(int argc, char *argv[])
 {
     ros::init(argc, argv, "MapCreator");
     Map mapObject;
-    ros::spinOnce();
+    mapObject.callMap();                                                      // Called service to get map
+    while(ros::ok())
+        ros::spinOnce();
 
     return 0;
 }

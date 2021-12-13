@@ -8,10 +8,29 @@ from a_star_searching_from_two_side import *
 import csv
 import numpy as np
 import matplotlib.pyplot as plt
+from IPython import get_ipython
 
-def bestpath():
-    global bound
-    hg_dim = (51, 51)
+get_ipython().run_line_magic('matplotlib', 'qt')
+
+bot_length = 0.14/5
+bot_wheel_rad = 0.028/5
+dt = .1*10
+#%%
+def from_map(map_fname):
+        """ Create grid from text file """
+        with open(map_fname, 'r') as f:
+            reader = csv.reader(f, delimiter=" ")
+            lines = list(reader)
+        
+        for l in lines:
+            if '' in l:
+                l.remove('')
+            
+        lines = list(map(lambda l: list(map(int, l)), lines))
+        return lines
+    
+def bestpath(grid_map):
+    hg_dim = (230, 230)
     '''
     current = start
     target_angle = None
@@ -19,23 +38,15 @@ def bestpath():
         math.atan2(start[0] - end[0], start[1] - end[1])))
     previous_angle = current_angle
     '''
-    def from_map(map_fname):
-        """ Create grid from text file """
-        with open(map_fname, 'r') as f:
-            reader = csv.reader(f, delimiter=" ")
-            lines = list(reader)
-    
-        lines = list(map(lambda l: list(map(int, l)), lines))
-        return lines
     
     hg = HistogramGrid(hg_dim[0], hg_dim[1])
-    hg.grid = from_map("map_no_sides.txt")
+    hg.grid = from_map(grid_map)
     
     top_vertex = [len(hg.grid)-1, len(hg.grid[0])-1]  # top right vertex of boundary
     bottom_vertex = [0, 0]  # bottom left vertex of boundary
     
-    start = [bottom_vertex[0]+1,bottom_vertex[1]+1]
-    goal = [top_vertex[0]-1,top_vertex[1]-1]
+    start = [50*5,20*5]
+    goal = [170*5,180*5]
     
     ay = list(range(bottom_vertex[1], top_vertex[1]))
     ax = [bottom_vertex[0]] * len(ay)
@@ -78,6 +89,7 @@ def bestpath():
     bound = np.vstack((bound_temp, obs_array))
     
     path = searching_control(start, goal, bound, obstacle)
+    
     if not show_animation:
         print(path)
  
@@ -90,26 +102,26 @@ def bestpath():
     plt.plot(start[0], start[1], '^b', label='Origin')
     plt.legend()
     plt.pause(0.0001)
-    return path,start,goal
-#%%
+    return path,start,goal,bound
+
 """ Testing for VFH+ algorithm using map.txt grid from vfh-python"""
 # USER-DEFINED VARIABLES--------
-path,start,end = bestpath()
+path,start,end,bound = bestpath("gazebo_map.txt")
 # Start/end location for robot in histogram grid
 #start = random_coordinate(bottom_vertex, top_vertex)
 #end = random_coordinate(bottom_vertex, top_vertex)
-
+#%%
 # Dimension of HistogramGrid
-hg_dim = (50, 50)
+hg_dim = (500, 500)
 
 # Number of sectors in PolarHistogram
-nsectors = 72
+nsectors = 180
 
 # Window Length of active region
-w_s = 11
+w_s = 10*1.6
 
 # Max number of steps for loop (Prevent infinite loops)
-MAX_STEPS = 150
+MAX_STEPS = 5500
 
 # CONSTANTS USED IN CALCS-----------------------------
 # Feel free to change these to see what happens
@@ -120,36 +132,22 @@ mhp_a = 1
 mhp_b = 1
 
 # Positive constant for smoothing polar histogram
-mhp_l = 5
+mhp_l = 20
 
 # Positive constant for certainty threshold of polar sector
-gbd_t = 20
+gbd_t = 8
 
 # Positive constant for number of consecutive sectors for a wide valley
 # Should change in accordance with nsectors
-gbd_smax = 18
+gbd_smax = 45
 
 # Positive constants for calculating cost of candidate angles
 # gbd_a is for goal oriented steering, gbd_b and gbd_c are for smooth steering
 # Should satisty gbd_a > gbd_b + gbd_c
-gbd_a = 5
-gbd_b = 2
-gbd_c = 2
+gbd_a = 10
+gbd_b = 1
+gbd_c = 1
 # ---------------
-
-
-def from_map(map_fname):
-    """ Create grid from text file """
-    with open(map_fname, 'r') as f:
-        reader = csv.reader(f, delimiter=" ")
-        lines = list(reader)
-
-    lines = list(map(lambda l: list(map(int, l)), lines))
-    nrows = len(lines)
-    ncols = len(lines[0])
-
-    return lines
-
 
 current = start
 target_angle = None
@@ -158,13 +156,13 @@ current_angle = wrap_angle(math.degrees(
 previous_angle = current_angle
 
 hg = HistogramGrid(hg_dim[0], hg_dim[1])
-hg.grid = from_map("map.txt")
+hg.grid = from_map("gazebo_map.txt")
 
 ph = None
-
+waypoints = 5
 steps = []
 index = 0
-i = 10
+i = round((len(path)-1)/waypoints)
 
 goal = (path[i][0],path[i][1])
 j = 0
@@ -175,7 +173,8 @@ while j < MAX_STEPS:
     while index < MAX_STEPS:
         print ("STEP", index)
         #hg.print_hg(list(map(lambda s: s[1], steps)), start, end, current)
-        if current == goal:
+        if math.sqrt((goal[0] - current[0])**2 + (goal[1] - current[1])**2) < 10:
+            #if current == goal:
             break
     
         ph = VFH.map_active_hg_to_ph(hg, PolarHistogram(
@@ -183,31 +182,66 @@ while j < MAX_STEPS:
     
         target_angle = wrap_angle(math.degrees(
             math.atan2(current[0] - goal[0], current[1] - goal[1])))
+        
         best_angle = VFH.get_best_direction(
             ph.polar_histogram, target_angle, current_angle, previous_angle, gbd_t, gbd_smax, gbd_a, gbd_b, gbd_c)
         print ("best_angle", best_angle)
-        steps.append((index, current, target_angle,
-                      wrap_angle(best_angle), ph.polar_histogram))
+        steps.append((index, current, current_angle,
+                      best_angle, ph.polar_histogram))
     
         # Compute next adjacent cell robot will be in
+        
+        vdiff = (best_angle - current_angle) * bot_length / bot_wheel_rad
+        if abs(vdiff) > 200:
+            if (best_angle - current_angle) < 0:
+                vl = 100
+                vr = -100
+            else:
+                vl = -100
+                vr = 100
+        else:
+            if (best_angle - current_angle) < 0:
+                vl = 100
+                vr = vl + vdiff
+            else:
+                vr = 100
+                vl = vr - vdiff
+                
+        
+        next_angle = current_angle + (vr - vl) * bot_wheel_rad * dt / bot_length
+        next_x = current[0] - (vr + vl) * bot_wheel_rad * math.sin(math.radians(current_angle)) * dt / 2
+        next_y = current[1] - (vr + vl) * bot_wheel_rad * math.cos(math.radians(current_angle)) * dt / 2
+        '''
         next_angle = math.floor(wrap_angle(best_angle + 22.5) / 45) * 45
+        '''
         print ("current", current)
         print ("next_angle", next_angle)
+        '''
         next_x = int(round((math.sqrt(2) if next_angle % 90 != 0 else 1) *
                      math.cos(math.radians(next_angle + 90)),0)) + current[0]
         next_y = int(round((math.sqrt(2) if next_angle % 90 != 0 else 1) *
                      math.sin(math.radians(next_angle + 90)),0)) * -1 + current[1]
+        '''
         print ("next x %d y %d" % (next_x, next_y))
-    
+
         current = (next_x, next_y)
         previous_angle = current_angle
+        current_angle = next_angle
+        '''
         current_angle = best_angle
-    
+        '''
         index += 1
         print ("-" * 16)
-    i += 5
+        
+    i += round((len(path)-1)/waypoints)
+    
     if i >= len(path):
         i = len(path)-1
+    
+    '''
+    Account for obstical on waypoint. Similar to above.
+    '''
+    
     goal = (path[i][0],path[i][1])
     j += 1
 print ("COMPLETE")
@@ -217,23 +251,32 @@ for s in steps:
 
 hg.print_hg(list(map(lambda s: s[1], steps)), start, end, current)
 
+#%%
 bot_temp = list(map(lambda s: s[1], steps))
+bot_angle_temp = list(map(lambda s: s[2], steps))
 bot = []
 for s in bot_temp:
     bot.append([s[0],s[1]])
-
+bot_angle = []
+for s in bot_angle_temp:
+    bot_angle.append(s)
 bot = np.array(bot)
+bot_angle = np.array(bot_angle)
+
+#%%
+#path_ob,_,_,bound_ob = bestpath("gazebo_map.txt")
 
 plt.cla()
 plt.gcf().set_size_inches(11, 9, forward=True)
 plt.axis('equal')
-plt.plot(path[:, 0], path[:, 1], 'or')
-plt.plot(bot[:, 0], bot[:, 1], 'og')
-plt.plot(bound[:, 0], bound[:, 1], 'sk')
+plt.plot(path[:, 0], path[:, 1], 'or', markersize=1)
+plt.plot(bot[:, 0], bot[:, 1], 'og', markersize=1)
+#plt.plot(bound_ob[:, 0], bound_ob[:, 1], 'sk', markersize=1)
+plt.plot(bound[:, 0], bound[:, 1], 'sk', markersize=1)
 plt.plot(goal[0], goal[1], '*b', label='Goal')
 plt.plot(start[0], start[1], '^b', label='Origin')
-plt.legend()
-plt.pause(0.0001)
+#plt.legend() 
+#plt.pause(0.0001)
 # vcp = (int(sys.argv[2]), int(sys.argv[3]))
 # print vcp
 # hg_dim = (50, 50)
